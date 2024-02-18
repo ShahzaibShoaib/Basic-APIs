@@ -1,5 +1,7 @@
 const express = require('express');
 const Books = require('../model/Books');
+const Users = require('../model/Users');
+
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
@@ -18,47 +20,70 @@ function verifyToken(req, res, next) {
       }
       req.user = decoded;
       next();
+      return decoded;
+
   });
 }
 
-
 router.use(express.json());
 
-router.post('/create',verifyToken, async (req, res) => {
+router.post('/create', verifyToken, async (req, res) => {
     try {
-        const { title, author } = req.body;
-        const newBook = new Books({ title, author });
+        const { title , content } = req.body;
+        const author = await Users.findOne({email:req.user.email});
+        const newBook = new Books({ title, content, author});
         const savedBook = await newBook.save();
         res.json(savedBook);
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
-router.get('/read', async (req, res) => {
+router.post('/read', verifyToken, async (req, res) => {
     try {
-        const books = await Books.find();
+        const books = await Books.findOne({title:req.body.title});
         res.json(books);
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
-router.post('/update',verifyToken, async (req, res) => {
+router.post('/update', verifyToken, async (req, res) => {
     try {
-        const updatedBook = await Books.findByIdAndUpdate(req.params.id, req.body, {
+        const { title, newContent } = req.body;
+        if (!title || !newContent) return res.status(400).json({ error: 'Title and Content are required' });
+    
+        const updatedBook = await Books.findOneAndUpdate({ title }, { content: newContent }, {
             new: true,
         });
+
+        if (!updatedBook) {
+            return res.status(404).json({ error: ' Book not found' });
+        }
+
         res.json(updatedBook);
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
-router.post('/delete',verifyToken, async (req, res) => {
+
+
+router.post('/delete', verifyToken, async (req, res) => {
     try {
-        const deletedBook = await Books.findByIdAndDelete(req.params.id);
+        const deletedBook = await Books.findOneAndDelete({title:req.body.title});
         res.json(deletedBook);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+router.post('/userinfo', verifyToken, async (req, res) => {
+    try {
+        const books = await Books.findOne({title:req.body.title}).populate("author");
+        res.json(books);    
+
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
