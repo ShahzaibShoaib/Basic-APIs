@@ -2,10 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const authRouter = require('./routes/auth');
 const booksRouter = require('./routes/crud'); 
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const dburl = process.env.MONGODB_URI || 'mongodb+srv://atlasdb:abc123abc@cluster0.e664uml.mongodb.net/?retryWrites=true&w=majority';
+const dburl = process.env.MONGODB_URI || process.env.password;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
